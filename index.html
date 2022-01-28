@@ -1,0 +1,201 @@
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <script src="https://cdn.jsdelivr.net/npm/web3@latest/dist/web3.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+    
+    <title>Welcome to my Voting Application</title>
+
+  </head>
+
+  <body style="background-color:powderblue;">
+        
+    <div class="container-fluid">
+        
+    Welcome to my Public voting application<br><br>
+  
+    <input id="connect" type="button" value="Connect to Metamask" onclick="startNow();">
+    <br><br>
+    Click the button below to add yourself to voter list.
+    <br><br>
+    <div class="form-group col-md-2">
+      <button id="button" onclick="addVoter();">Add Voter</button>
+    </div>
+    <b><div id="voter" ></div></b>
+      
+    Add your proposal
+    
+    <div class="form-row">
+
+      <div class="form-group col-md-2">
+      <input  type="text" id="proposal_param1" placeholder="Your proposal">
+      </div>
+  
+        
+    <div class="form-group col-md-2">
+      <button id="button" onclick="addProposals()">Add Proposal</button><br>
+      </div>
+    
+    
+    <b><div id="Proposal" ></div></b>
+    <br>
+    </div>
+    View all the proposals
+
+    <br><br>
+    <div class="form-group col-md-2">
+      <button id="button" onclick="viewProposals()">View All Proposals</button>
+    </div>
+    <b><div id="viewProposal" ></div></b>
+
+    Cast your Vote by writing proposal Id.
+
+    <div class="form-row">
+
+      <div class="form-group col-md-2">
+      <input  type="text" id="vote_param1" placeholder="Vote for proposal Id">
+      </div>
+  
+        
+    <div class="form-group col-md-2">
+      <button id="button" onclick="addVote()">Vote for Proposal</button><br>
+      </div>
+    
+    
+    <b><div id="voteProposal" ></div></b>
+    <br>
+    </div>
+    
+    Count Vote of each Proposal.
+    <br><br>
+
+    <div class="form-group col-md-2">
+      <button id="button" onclick="countVote()">Proposals Vote Count</button><br>
+    </div>
+    <b><div id="voteCount" ></div></b>
+    <br><br>
+
+    </div> 
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/1.4.0-rc.0/web3.min.js"></script>
+    <script type="text/javascript" src="abi.js"></script>
+    <script>
+      
+      var CONTRACT_ADDRESS = "0xB268A4a355A0C54dF5D260722b79009C281Ce407";
+
+      window.userAddress = "";
+
+      async function startNow() {
+        if (window.ethereum) {
+          try {
+            await window.ethereum.request({ method: "eth_requestAccounts" })
+              .then(function (address) {
+                const web3 = new Web3(Web3.givenProvider || "http://localhost:8545");
+                myContract = new web3.eth.Contract(abi, CONTRACT_ADDRESS);
+                window.userAddress = address[0];
+              })
+                .catch((e) => e);
+
+                window.ethereum.on("accountsChanged", function (accounts) {
+                  window.userAddress = address[0];
+                });
+               
+          } catch (error) {
+          if (error.code === 4001) {
+          }
+          console.log(error);
+      
+          }
+        }
+      }    
+   
+      if (window.userAddress) {
+        startNow();
+      }
+
+      async function addVoter() {
+        if (myContract) {
+          const result = await myContract.methods.addVoter(window.userAddress).send({ from: window.userAddress })
+            .then((result) => {
+              alert("Voter added successfully.");
+              console.log(result);
+            })
+            .catch((e) => {
+              console.log(e);
+            });
+        }
+      }
+
+      async function addProposals() {
+        var p1 = document.getElementById('proposal_param1').value;
+        if (myContract) {
+          const result = await myContract.methods.addProposal(document.getElementById('proposal_param1').value).send({ from: window.userAddress })
+            .then((result) => {
+              alert("Proposal added successfully.");
+              console.log(result);
+            })
+            .catch((e) => {
+              console.log(e);
+            });
+        }
+      }
+
+      async function viewProposals() {
+        if (myContract) {
+          const result = await myContract.methods.viewProposals().call({ from: window.userAddress })
+            .then((result) => {
+              var data="";
+              for(var i=0; i<result[0].length;i++)
+              {
+                data+="Proposal-"+(i+1)+": "+result[1][i]+"<br>";
+              }
+              $("#viewProposal").html("List of proposals "+"<br>"+JSON.stringify(data));
+              console.log(result);
+            })
+            .catch((e) => {
+              console.log(e);
+            });
+        }
+      }
+
+      async function addVote(cid) {
+        var p1 = document.getElementById('vote_param1').value;
+        if (myContract) {
+          myContract.methods.addVote(p1).send({ from: window.userAddress })
+            .then((result) => {
+              $("#voteProposal").html("Vote Cast successfully at time "+result.events.VoteCast.returnValues.Time+" by address: "+result.events.VoteCast.returnValues.Voter);
+              alert("Vote added successfully.");
+            })
+            .catch((e) => {
+              console.log(e);
+            });
+        }
+      }
+
+      async function countVote() {
+        if (myContract) {
+          myContract.methods.getProposalVoteCount().call()
+            .then((result) => {
+
+              var data="";
+              for(var i=0; i<result[0].length;i++)
+              {
+                data+="Proposal-"+(i+1)+": "+result[1][i]+"<br>";
+              }
+              $("#voteCount").html(data);
+              console.log(result);
+            })
+            .catch((e) => {
+              console.log(e);
+            });
+        }
+      }
+
+    </script>
+  </body>
+
+    
+</html>
